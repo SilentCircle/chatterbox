@@ -28,6 +28,7 @@
          get_peercert/1,
          get_streams/1,
          send_window_update/2,
+         update_settings/2,
          send_frame/2
         ]).
 
@@ -257,7 +258,7 @@ get_peercert(Pid) ->
 is_push(Pid) ->
     gen_fsm:sync_send_all_state_event(Pid, is_push).
 
--spec new_stream(pid()) -> stream_id() | {error, error_code()}.
+-spec new_stream(pid()) -> stream_id().
 new_stream(Pid) ->
     new_stream(Pid, self()).
 
@@ -274,7 +275,7 @@ send_promise(Pid, StreamId, NewStreamId, Headers) ->
 
 -spec get_response(pid(), stream_id()) ->
                           {ok, {hpack:headers(), iodata()}}
-                           | not_ready.
+                              | {error, term()}.
 get_response(Pid, StreamId) ->
     gen_fsm:sync_send_all_state_event(Pid, {get_response, StreamId}).
 
@@ -285,6 +286,10 @@ get_streams(Pid) ->
 -spec send_window_update(pid(), non_neg_integer()) -> ok.
 send_window_update(Pid, Size) ->
     gen_fsm:send_all_state_event(Pid, {send_window_update, Size}).
+
+-spec update_settings(pid(), h2_frame_settings:payload()) -> ok.
+update_settings(Pid, Payload) ->
+    gen_fsm:send_all_state_event(Pid, {update_settings, Payload}).
 
 -spec stop(pid()) -> ok.
 stop(Pid) ->
@@ -907,6 +912,12 @@ handle_event({send_window_update, Size},
      Conn#connection{
        recv_window_size=CRWS+Size
       }};
+handle_event({update_settings, Http2Settings},
+             StateName,
+             #connection{}=Conn) ->
+    {next_state,
+     StateName,
+     send_settings(Http2Settings, Conn)};
 handle_event({send_headers, StreamId, Headers, Opts},
              StateName,
              #connection{
