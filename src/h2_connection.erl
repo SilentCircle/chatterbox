@@ -265,9 +265,7 @@ get_peercert(Pid) ->
 is_push(Pid) ->
     gen_fsm:sync_send_all_state_event(Pid, is_push).
 
--spec new_stream(pid()) ->
-                        stream_id()
-                      | {error, error_code()}.
+-spec new_stream(pid()) -> stream_id() | {error, error_code()}.
 new_stream(Pid) ->
     new_stream(Pid, self()).
 
@@ -284,7 +282,8 @@ send_promise(Pid, StreamId, NewStreamId, Headers) ->
 
 -spec get_response(pid(), stream_id()) ->
                           {ok, {hpack:headers(), iodata()}}
-                              | not_ready | {error, term()}.
+                          | not_ready
+                          | {error, error_code()}.
 get_response(Pid, StreamId) ->
     gen_fsm:sync_send_all_state_event(Pid, {get_response, StreamId}).
 
@@ -1098,19 +1097,13 @@ handle_sync_event(streams, _F, StateName,
 handle_sync_event({get_response, StreamId}, _F, StateName,
                   #connection{}=Conn) ->
     Stream = h2_stream_set:get(StreamId, Conn#connection.streams),
-    {Reply, NewStreams} =
-        case h2_stream_set:type(Stream) of
-            closed ->
-                {_, NewStreams0} =
-                    h2_stream_set:close(
-                      Stream,
-                      garbage,
-                      Conn#connection.streams),
-                {{ok, h2_stream_set:response(Stream)}, NewStreams0};
-            active ->
-                {not_ready, Conn#connection.streams}
-        end,
-    {reply, Reply, StateName, Conn#connection{streams=NewStreams}};
+    Reply = case h2_stream_set:type(Stream) of
+                closed ->
+                    {ok, h2_stream_set:response(Stream)};
+                active ->
+                    not_ready
+            end,
+    {reply, Reply, StateName, Conn};
 handle_sync_event({new_stream, NotifyPid}, _F, StateName,
                   #connection{
                      streams=Streams,
