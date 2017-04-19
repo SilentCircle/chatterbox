@@ -282,7 +282,8 @@ send_promise(Pid, StreamId, NewStreamId, Headers) ->
 
 -spec get_response(pid(), stream_id()) ->
                           {ok, {hpack:headers(), iodata()}}
-                           | not_ready.
+                          | not_ready
+                          | {error, error_code()}.
 get_response(Pid, StreamId) ->
     gen_fsm:sync_send_all_state_event(Pid, {get_response, StreamId}).
 
