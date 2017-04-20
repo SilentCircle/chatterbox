@@ -1099,6 +1099,9 @@ handle_sync_event({get_response, StreamId}, _F, StateName,
     Stream = h2_stream_set:get(StreamId, Conn#connection.streams),
     Reply = case h2_stream_set:type(Stream) of
                 closed ->
+                    _ = h2_stream_set:close(Stream,
+                                            garbage,
+                                            Conn#connection.streams),
                     {ok, h2_stream_set:response(Stream)};
                 active ->
                     not_ready
