@@ -120,7 +120,7 @@ basic_push(_Config) ->
     ?assertEqual(0, (h2_stream_set:their_active_count(Streams))),
 
     MyActiveStreams = h2_stream_set:my_active_streams(Streams),
-    ?assertEqual(0, (length(MyActiveStreams))), %% This closed stream should be GC'ed
+    ?assertEqual(0, (length(MyActiveStreams))),
 
     TheirActiveStreams = h2_stream_set:their_active_streams(Streams),
     ?assertEqual(12, (length(TheirActiveStreams))),
